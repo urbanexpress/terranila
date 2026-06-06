@@ -12,7 +12,7 @@
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- PENCEGAH FLICKER LOGIN WALL (PERMINTAAN #2) -->
+    <!-- PENCEGAH FLICKER LOGIN WALL -->
     <script>
         if(localStorage.getItem('terr_active')) {
             document.documentElement.classList.add('is-logged-in');
@@ -444,7 +444,7 @@
             <button onclick="tambahBarisBiaya()" class="text-blue-600 text-xs font-bold">+ Tambah Biaya</button>
         </div>
 
-        <!-- LAMPIRAN KOLAM (Fitur #6) -->
+        <!-- LAMPIRAN KOLAM -->
         <div class="mb-6">
             <label class="block text-sm font-bold text-slate-700 mb-2"><i class="fas fa-camera text-blue-500"></i> Lampiran Foto Kolam (Opsional)</label>
             <input type="file" id="input-lampiran-kolam" accept="image/*" onchange="previewImage(this, 'preview-lampiran-kolam')" class="text-sm block w-full border border-slate-200 rounded-lg p-2 text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
@@ -468,11 +468,9 @@
     <!-- ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // TAHAP 3: MASUKKAN KUNCI SUPABASE ANDA DI SINI
         var supabaseUrl = 'https://xvobcubcynohbhsfchkd.supabase.co';
         var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2b2JjdWJjeW5vaGJoc2ZjaGtkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NjY2MzcsImV4cCI6MjA5NjA0MjYzN30.bCekf7hD1dnstlF1LcLrpzLZ2n_bRSFN09PtPeaKvKE';
         
-        // Inisialisasi Supabase
         window.supabaseApp = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         window.prosesRegister = async () => {
@@ -572,7 +570,7 @@
                 dbDetailKolam: typeof dbDetailKolam !== 'undefined' ? dbDetailKolam : {},
                 dbRiwayatPanen: typeof dbRiwayatPanen !== 'undefined' ? dbRiwayatPanen : [],
                 dbLaporanPenjualan: typeof dbLaporanPenjualan !== 'undefined' ? dbLaporanPenjualan : [],
-                userProfilePic: window.userProfilePic || null // Tambahan untuk Foto Profil
+                userProfilePic: window.userProfilePic || null
             };
 
             const { data: { user } } = await window.supabaseApp.auth.getUser();
@@ -596,7 +594,7 @@
 
         window.activateSession = function(email, nama, uid, usaha) {
             localStorage.setItem('terr_active', JSON.stringify({ email, nama, uid, usaha }));
-            document.documentElement.classList.add('is-logged-in'); // Pre-loader class
+            document.documentElement.classList.add('is-logged-in');
             
             if(window.tutupModalAuth) window.tutupModalAuth();
             
@@ -621,7 +619,7 @@
         window.prosesLogout = async () => {
             await window.supabaseApp.auth.signOut(); 
             localStorage.removeItem('terr_active');
-            document.documentElement.classList.remove('is-logged-in'); // Hapus class
+            document.documentElement.classList.remove('is-logged-in');
             
             if(window.resetLocalData) window.resetLocalData();
             document.getElementById('main-content').classList.add('hidden');
@@ -637,7 +635,6 @@
             window.showCustomAlert("Anda telah Logout dengan aman dari Supabase.");
         };
 
-        // CEK SESSION SUPABASE SAAT REFRESH (Pencegah Logout - Fix #2)
         async function initApp() {
             const { data: { session } } = await window.supabaseApp.auth.getSession();
             if(session) { 
@@ -650,14 +647,12 @@
                 if(activeUser && activeUser.email === 'admin@terranila.com') { 
                     window.activateSession(activeUser.email, activeUser.nama, activeUser.uid, activeUser.usaha); 
                 } else {
-                    // Jika benar-benar tidak ada sesi, hilangkan status login
                     document.documentElement.classList.remove('is-logged-in');
                     document.getElementById('login-wall').classList.remove('hidden');
                 }
             }
         }
         
-        // Sengaja ditunggu sebentar agar DOM siap
         document.addEventListener('DOMContentLoaded', initApp);
 
     </script>
@@ -677,7 +672,7 @@
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
                     let width = img.width; let height = img.height;
-                    const MAX_WIDTH = 600; // Ukuran diperkecil agar sangat ringan
+                    const MAX_WIDTH = 600; 
                     if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
@@ -686,7 +681,6 @@
                     let quality = 0.7;
                     let dataUrl = canvas.toDataURL('image/jpeg', quality);
                     
-                    // Loop kompresi: Paksa turunkan kualitas jika masih di atas ~100KB (130k chars base64)
                     while(dataUrl.length > 130000 && quality > 0.1) {
                         quality -= 0.1;
                         dataUrl = canvas.toDataURL('image/jpeg', quality);
@@ -699,7 +693,6 @@
 
         window.uploadFileToStorage = async function(base64Data, folder) {
             try {
-                // Konversi Base64 ke Blob (Binary)
                 const byteString = atob(base64Data.split(',')[1]);
                 const ab = new ArrayBuffer(byteString.length);
                 const ia = new Uint8Array(ab);
@@ -711,7 +704,7 @@
                 
                 if (error) throw error;
                 const { data: urlData } = window.supabaseApp.storage.from('lampiran').getPublicUrl(fileName);
-                return urlData.publicUrl; // Mengembalikan URL Publik Supabase
+                return urlData.publicUrl; 
             } catch (err) {
                 console.error("Upload error", err);
                 return null;
@@ -727,14 +720,12 @@
             }
         }
 
-        // FUNGSI GANTI FOTO PROFIL (Fitur #4)
         function gantiFotoProfil(input) {
             if (input.files && input.files[0]) {
                 document.getElementById('cloud-status-badge').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunggah...';
                 window.compressImage(input.files[0], async function(base64Avatar) {
-                    terapkanFotoProfilUI(base64Avatar); // Terapkan UI lokal langsung agar responsif
+                    terapkanFotoProfilUI(base64Avatar); 
                     
-                    // Unggah ke Supabase Storage
                     const url = await window.uploadFileToStorage(base64Avatar, 'profil');
                     if(url) {
                         window.userProfilePic = url;
@@ -774,25 +765,24 @@
             }
         }
 
-        // RENDER GALERI DARI KOLAM & PANEN (Fitur #6)
         function renderGaleri() {
             const cont = document.getElementById('galeri-container');
             if(!cont) return;
             cont.innerHTML = '';
             let count = 0;
             
-            // Tarik foto dari pembuatan Kolam
             Object.keys(dbDetailKolam).forEach(nm => {
-                if(dbDetailKolam[nm].lampiran && dbDetailKolam[nm].lampiran.startsWith('data:image')) {
-                    cont.innerHTML += `<div class="rounded-xl overflow-hidden shadow-sm border border-slate-200 relative group aspect-square"><img src="${dbDetailKolam[nm].lampiran}" class="w-full h-full object-cover transition-transform group-hover:scale-110"><div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white p-2 text-center"><span class="text-xs font-bold mb-1"><i class="fas fa-water"></i> Kolam</span><span class="text-[10px]">${nm}</span></div></div>`;
+                let lamp = dbDetailKolam[nm].lampiran;
+                if(lamp && (lamp.startsWith('http') || lamp.startsWith('data:image'))) {
+                    cont.innerHTML += `<div class="rounded-xl overflow-hidden shadow-sm border border-slate-200 relative group aspect-square"><img src="${lamp}" class="w-full h-full object-cover transition-transform group-hover:scale-110"><div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white p-2 text-center"><span class="text-xs font-bold mb-1"><i class="fas fa-water"></i> Kolam</span><span class="text-[10px]">${nm}</span></div></div>`;
                     count++;
                 }
             });
             
-            // Tarik foto dari Panen
             dbRiwayatPanen.forEach(p => {
-                if(p.lampiran && p.lampiran.startsWith('data:image')) {
-                    cont.innerHTML += `<div class="rounded-xl overflow-hidden shadow-sm border border-slate-200 relative group aspect-square"><img src="${p.lampiran}" class="w-full h-full object-cover transition-transform group-hover:scale-110"><div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white p-2 text-center"><span class="text-xs font-bold mb-1"><i class="fas fa-fish"></i> Panen</span><span class="text-[10px]">${p.kolam}<br>${p.tgl}</span></div></div>`;
+                let lamp = p.lampiran;
+                if(lamp && (lamp.startsWith('http') || lamp.startsWith('data:image'))) {
+                    cont.innerHTML += `<div class="rounded-xl overflow-hidden shadow-sm border border-slate-200 relative group aspect-square"><img src="${lamp}" class="w-full h-full object-cover transition-transform group-hover:scale-110"><div class="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white p-2 text-center"><span class="text-xs font-bold mb-1"><i class="fas fa-fish"></i> Panen</span><span class="text-[10px]">${p.kolam}<br>${p.tgl}</span></div></div>`;
                     count++;
                 }
             });
@@ -862,7 +852,6 @@
             }
         };
 
-        // DATABASE PUSAT (MENTAH)
         let dbKolam = [], dbPakan = [], dbKeuangan = [], dbInventory = {}, dbMonitoring = [], dbDetailKolam = {}, dbRiwayatPanen = [], dbLaporanPenjualan = [];
 
         window.applyCloudData = function(data) {
@@ -890,6 +879,12 @@
             renderTabelLaporanPenjualan();
         };
 
+        window.resetLocalData = function() {
+            dbKolam = []; dbPakan = []; dbKeuangan = []; dbInventory = {}; dbMonitoring = []; dbDetailKolam = {}; dbRiwayatPanen = []; dbLaporanPenjualan = [];
+            window.userProfilePic = null; terapkanFotoProfilUI(null);
+            updateAllKolamDropdowns(); renderTabelKolamAktif(); renderTabelKeuangan(); renderInventory(); renderTabelMonitoring(); renderRingkasanBeranda(); renderRingkasanPerforma(); renderTabelRiwayatPanen(); renderTabelLaporanPenjualan();
+        }
+
         function formatRupiah(num) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num); }
 
         function updateAllKolamDropdowns() {
@@ -914,7 +909,6 @@
             }
         }
 
-        // TAMBAH & EDIT KOLAM (Fitur #1)
         let isEditModeKolam = false;
         let oldKolamName = "";
 
@@ -924,7 +918,6 @@
             document.getElementById('title-modal-kolam').innerText = "Tambah Kolam";
             document.getElementById('btn-simpan-kolam').innerText = "Simpan Kolam Baru";
             
-            // Kosongkan form
             document.getElementById('input-nama-kolam').value = '';
             document.getElementById('input-lokasi').value = '';
             document.getElementById('input-luas').value = '';
@@ -936,6 +929,7 @@
             document.getElementById('input-lampiran-kolam').value = '';
             document.getElementById('preview-lampiran-kolam').classList.add('hidden');
             document.getElementById('preview-lampiran-kolam').src = '';
+            document.getElementById('grup-detail-pakan').classList.add('hidden');
 
             document.getElementById('modal-tambah-kolam').classList.remove('hidden'); 
             tambahBlokIkan(); 
@@ -945,10 +939,9 @@
         function tambahBlokIkan(data = null) {
             let jns = data ? data.jenis : ''; let panen = data ? data.panen : '';
             let tbr = data ? data.tebar : ''; let hr = data ? data.harga : '';
-            let ba = data ? data.beratAwal : ''; let bp = data ? data.berat : '';
-            let fc = data ? data.fcr : '';
+            let ba = data ? data.totBeratAwalGr : ''; let bp = data ? data.brt : '';
+            let fc = data ? data.fc : '';
             
-            // Jaga-jaga nilai kosong
             if(panen === '-') panen = '';
             
             document.getElementById('wadah-target-ikan').insertAdjacentHTML('beforeend', `
@@ -998,7 +991,10 @@
             }
         }
         function tambahWaktuPakan(val = '') { document.getElementById('wadah-waktu-pakan').insertAdjacentHTML('beforeend', `<div class="flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-3 py-2 shadow-sm"><input type="time" value="${val}" class="text-sm outline-none text-blue-600 font-bold bg-transparent"><span class="text-xs text-slate-500">WIB</span><button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-500 ml-1"><i class="fas fa-times"></i></button></div>`); }
-        function tambahBarisPakan() { document.getElementById('wadah-baris-pakan').insertAdjacentHTML('beforeend', `<tr class="bg-white"><td class="p-2"><input type="text" placeholder="Fase" class="w-full border border-slate-300 rounded px-2 py-1 text-xs outline-none focus:border-blue-500"></td><td class="p-2"><input type="text" placeholder="Brand" class="w-full border border-slate-300 rounded px-2 py-1 text-xs outline-none focus:border-blue-500"></td><td class="p-2"><input type="number" placeholder="Harga" class="w-full border border-slate-300 rounded px-2 py-1 text-xs outline-none focus:border-blue-500"></td><td class="p-2 flex items-center"><input type="number" placeholder="%" class="w-full border border-slate-300 rounded-l px-2 py-1 text-xs text-right outline-none focus:border-blue-500"><span class="bg-slate-100 border border-slate-300 border-l-0 rounded-r px-2 py-1 text-xs">%</span></td><td class="p-2 text-center"><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 hover:text-red-600 bg-red-50 p-1.5 rounded transition"><i class="fas fa-trash"></i></button></td></tr>`); }
+        function tambahBarisPakan(data = null) { 
+            let f = data ? data.fase : ''; let b = data ? data.brand : ''; let h = data ? data.harga : ''; let p = data ? data.persen : '';
+            document.getElementById('wadah-baris-pakan').insertAdjacentHTML('beforeend', `<tr class="bg-white"><td class="p-2"><input type="text" value="${f}" placeholder="Fase" class="w-full border border-slate-300 rounded px-2 py-1 text-xs outline-none focus:border-blue-500"></td><td class="p-2"><input type="text" value="${b}" placeholder="Brand" class="w-full border border-slate-300 rounded px-2 py-1 text-xs outline-none focus:border-blue-500"></td><td class="p-2"><input type="number" value="${h}" placeholder="Harga" class="w-full border border-slate-300 rounded px-2 py-1 text-xs outline-none focus:border-blue-500"></td><td class="p-2 flex items-center"><input type="number" value="${p}" placeholder="%" class="w-full border border-slate-300 rounded-l px-2 py-1 text-xs text-right outline-none focus:border-blue-500"><span class="bg-slate-100 border border-slate-300 border-l-0 rounded-r px-2 py-1 text-xs">%</span></td><td class="p-2 text-center"><button onclick="this.parentElement.parentElement.remove()" class="text-red-400 hover:text-red-600 bg-red-50 p-1.5 rounded transition"><i class="fas fa-trash"></i></button></td></tr>`); 
+        }
         function tambahBarisBiaya() { document.getElementById('wadah-baris-biaya').insertAdjacentHTML('beforeend', `<div class="flex gap-3 items-center mt-2"><input type="text" placeholder="Ket biaya..." class="flex-grow border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500"><div class="relative w-1/3"><span class="absolute left-3 top-2 text-sm text-slate-500">Rp</span><input type="number" class="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-sm outline-none focus:border-blue-500"></div><button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 p-2"><i class="fas fa-trash"></i></button></div>`); }
 
         async function simpanKolam() {
@@ -1011,8 +1007,6 @@
 
             let jk=[], tb=[], br=[], bAw=[], fcr=[], tp=[], bms=[], pk=[];
             let kolamTebarT = 0, kolamBioT = 0, kolamPakanT = 0;
-            
-            // Simpan raw data untuk fungsi edit nanti
             let rawIkanData = [];
 
             document.querySelectorAll('.blok-ikan').forEach(g => {
@@ -1037,27 +1031,29 @@
                 rawIkanData.push({jenis: nama, harga: hrg, sat: sat, panen: tPanen, tebar: tbr, totBeratAwalGr: totBeratAwalGr, brt: brt, fc: fc});
 
                 let totB = parseFloat(hrg) * tbr;
-                // Hanya tambah transaksi keuangan benih jika BUKAN mode edit
                 if(totB > 0 && !isEditModeKolam) tambahTransaksiKeuangan('keluar', tglBuat, nm, 'Benih', `Beli Benih ${nama} (${tbr} ekor)`, totB, false);
             });
             
             let wPakanArr = [];
             document.querySelectorAll('#wadah-waktu-pakan input[type="time"]').forEach(inp => { if(inp.value) wPakanArr.push(inp.value); });
 
-            let pd=[]; let totBiayaPakan = 0;
+            let pd=[]; let totBiayaPakan = 0; let rawPakanData = [];
             let rowsPakan = document.querySelectorAll('#wadah-baris-pakan tr');
             rowsPakan.forEach(tr => {
                 const inp = tr.querySelectorAll('input');
                 if(inp.length >= 4 && inp[0].value) {
+                   let fse = inp[0].value;
+                   let brn = inp[1].value || '';
                    let hgPkn = parseFloat(inp[2].value) || 0;
                    let pctPkn = parseFloat(inp[3].value) || (rowsPakan.length === 1 ? 100 : 0);
-                   pd.push(`${inp[0].value} (${inp[1].value || '-'}, ${pctPkn}%)`);
+                   pd.push(`${fse} (${brn || '-'}, ${pctPkn}%)`);
+                   rawPakanData.push({ fase: fse, brand: brn, harga: hgPkn, persen: pctPkn }); 
+                   
                    if(hgPkn > 0 && pctPkn > 0) { totBiayaPakan += kolamPakanT * (pctPkn/100) * hgPkn; }
-                   if(inp[1].value && inp[2].value) { let b = inp[1].value; if(!dbPakan.find(x=>x.brand===b)) dbPakan.push({ brand: b, harga: hgPkn }); }
+                   if(brn && hgPkn) { if(!dbPakan.find(x=>x.brand===brn)) dbPakan.push({ brand: brn, harga: hgPkn }); }
                 }
             });
 
-            // Ambil Lampiran Kolam & Upload ke Storage (Fitur #6)
             let lampiranUrl = '';
             const imgPrev = document.getElementById('preview-lampiran-kolam');
             if(imgPrev && !imgPrev.classList.contains('hidden')) {
@@ -1068,21 +1064,19 @@
                     btn.disabled = true;
                     
                     const uploadedUrl = await window.uploadFileToStorage(imgPrev.src, 'kolam');
-                    lampiranUrl = uploadedUrl || imgPrev.src; // Gunakan URL Publik, fallback base64
+                    lampiranUrl = uploadedUrl || imgPrev.src;
                     
                     btn.innerHTML = textAsli;
                     btn.disabled = false;
                 } else {
-                    lampiranUrl = imgPrev.src; // Sudah URL lama (mode edit)
+                    lampiranUrl = imgPrev.src;
                 }
             }
 
-            // Jika mode edit, ganti nama di dbKolam jika berubah
             if(isEditModeKolam) {
                 if(oldKolamName !== nm) {
                     dbKolam = dbKolam.filter(k => k !== oldKolamName);
                     delete dbDetailKolam[oldKolamName];
-                    // Update data keuangan, monitoring, dll yang pakai nama lama
                     dbKeuangan.forEach(x => { if(x.kolam === oldKolamName) x.kolam = nm; });
                     dbMonitoring.forEach(x => { if(x.kolam === oldKolamName) x.kolam = nm; });
                     dbRiwayatPanen.forEach(x => { if(x.kolam === oldKolamName) x.kolam = nm; });
@@ -1094,10 +1088,9 @@
                 lok: lok, luas: luas, kedalaman: kdlm, jenisArr: jk, tebarArr: tb, beratAwalArr: bAw,
                 beratArr: br, panenArr: tp, fcrArr: fcr, bmsArr: bms, pkArr: pk, pdArr: pd,
                 jenisStr: jk.join(', '), targetBiayaPakan: totBiayaPakan, waktuPakan: wPakanArr,
-                rawIkan: rawIkanData, lampiran: lampiranUrl
+                rawIkan: rawIkanData, rawPakan: rawPakanData, lampiran: lampiranUrl 
             };
 
-            // Transaksi biaya awal (hanya jika baru/tidak diedit)
             if(!isEditModeKolam) {
                 document.querySelectorAll('#wadah-baris-biaya > div').forEach(div => {
                     const i = div.querySelectorAll('input');
@@ -1136,7 +1129,6 @@
             });
         }
 
-        // FITUR EDIT KOLAM (Permintaan #1)
         function jalankanEditKolam(btn, e) {
             if(e) e.stopPropagation();
             const row = btn.closest('tr'); 
@@ -1165,12 +1157,15 @@
                 dt.waktuPakan.forEach(wp => tambahWaktuPakan(wp));
             }
 
-            // Sembunyikan biaya awal saat edit agar tidak ganda
+            document.getElementById('wadah-baris-pakan').innerHTML = '';
+            if(dt.rawPakan && dt.rawPakan.length > 0) {
+                dt.rawPakan.forEach(rp => tambahBarisPakan(rp));
+            }
+
             document.getElementById('wadah-baris-biaya').innerHTML = '<p class="text-xs text-orange-500 italic">Biaya awal tidak dapat ditambah saat mode Edit. Gunakan tab Transaksi Keuangan.</p>';
             
-            // Tampilkan foto jika ada
             const imgPrev = document.getElementById('preview-lampiran-kolam');
-            if(dt.lampiran && dt.lampiran.startsWith('data:image')) {
+            if(dt.lampiran && (dt.lampiran.startsWith('data:image') || dt.lampiran.startsWith('http'))) {
                 imgPrev.src = dt.lampiran;
                 imgPrev.classList.remove('hidden');
             } else {
@@ -1196,7 +1191,6 @@
             });
         }
 
-        // MONITORING & INVENTORY
         function bukaModalMonitoring() { 
             const m = document.getElementById('modal-monitoring'); if(!m) return;
             const d = m.querySelector('input[type="date"]'); if(d && !d.value) d.valueAsDate = new Date();
@@ -1370,7 +1364,7 @@
             if(count === 0) list.innerHTML = '<div class="p-6 text-center text-slate-500 text-sm">Belum ada jadwal aktif.</div>'; badge.innerText = count; if(count === 0) badge.classList.add('hidden'); else badge.classList.remove('hidden');
         }
 
-        // PANEN (Fitur #5 Ditambahkan)
+        // PANEN
         function renderFormPanen() {
             const sel = document.getElementById('pilih-kolam-panen'); const area = document.getElementById('area-form-panen');
             if(!sel || !area) return; const kName = sel.value; if(!kName || !dbDetailKolam[kName]) { area.classList.add('hidden'); return; }
@@ -1405,7 +1399,6 @@
             let bKet = document.getElementById('panen-biaya-ket').value; let bNom = parseFloat(document.getElementById('panen-biaya-nom').value)||0;
             if(bNom>0) tambahTransaksiKeuangan('keluar', tgl, kolam, 'Biaya Panen', bKet||'Biaya Panen', bNom, true);
 
-            // Ambil Lampiran Panen & Upload ke Storage (Fitur #5)
             let lampiranUrl = '';
             const imgPrev = document.getElementById('preview-lampiran-panen');
             if(imgPrev && !imgPrev.classList.contains('hidden')) {
@@ -1455,7 +1448,6 @@
             [...dbLaporanPenjualan].reverse().forEach(j => { tbJ.innerHTML += `<tr class="hover:bg-slate-50 border-b border-slate-100"><td class="py-4 px-4 text-left">${j.tgl}</td><td class="py-4 px-4 text-left font-bold text-slate-800">${j.klm}<br><span class="text-xs text-slate-500">${j.jn}</span></td><td class="py-4 px-4 text-left">${j.pb}</td><td class="py-4 px-4">Semua</td><td class="py-4 px-4 font-bold text-blue-600">${j.jm} ${j.st}</td><td class="py-4 px-4">${formatRupiah(j.hr)}</td><td class="py-4 px-4 font-bold text-emerald-600">${formatRupiah(j.tot)}</td><td class="py-4 px-4"><span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs">${j.mt}</span></td></tr>`; });
         }
 
-        // BACKEND VIEWER
         window.bukaModalDB = function() {
             const fd = {kolam_aktif: dbKolam, detail_kolam: dbDetailKolam, keuangan: dbKeuangan, inventory: dbInventory, monitoring: dbMonitoring, pakan: dbPakan, riwayat_panen: dbRiwayatPanen, laporan_penjualan: dbLaporanPenjualan};
             document.getElementById('db-json-output').value = JSON.stringify(fd, null, 4);
@@ -1469,11 +1461,6 @@
             document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); window.showCustomAlert("File Backup JSON berhasil diunduh!");
         }
 
-        // INIT RENDER
-        renderRingkasanBeranda();
-        renderTabelKolamAktif();
-        renderTabelRiwayatPanen();
-        renderTabelLaporanPenjualan();
     </script>
 </body>
 </html>
