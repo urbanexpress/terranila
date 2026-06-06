@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terranila Book - Aplikasi Lengkap</title>
     
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Terranila">
+    
     <!-- CSS Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome -->
@@ -17,6 +23,89 @@
         if(localStorage.getItem('terr_active')) {
             document.documentElement.classList.add('is-logged-in');
         }
+    </script>
+
+    <!-- PWA DYNAMIC GENERATOR (MANIFEST & SERVICE WORKER) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Generate Manifest dinamis untuk Single-File PWA
+            const manifestStr = JSON.stringify({
+                name: "Terranila Book - Budidaya Ikan",
+                short_name: "Terranila",
+                start_url: window.location.href,
+                display: "standalone",
+                background_color: "#F8FAFC",
+                theme_color: "#2563eb",
+                description: "Aplikasi Manajemen Budidaya Ikan Cerdas",
+                icons: [
+                    {
+                        src: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Water_drop_icon.svg/192px-Water_drop_icon.svg.png",
+                        sizes: "192x192",
+                        type: "image/png"
+                    },
+                    {
+                        src: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Water_drop_icon.svg/512px-Water_drop_icon.svg.png",
+                        sizes: "512x512",
+                        type: "image/png"
+                    }
+                ]
+            });
+            const manifestBlob = new Blob([manifestStr], {type: 'application/json'});
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestUrl;
+            document.head.appendChild(link);
+
+            // 2. Generate Service Worker dinamis
+            const swCode = `
+                const CACHE_NAME = 'terranila-v2-pwa';
+                self.addEventListener('install', event => {
+                    self.skipWaiting();
+                });
+                self.addEventListener('activate', event => {
+                    event.waitUntil(clients.claim());
+                });
+                self.addEventListener('fetch', event => {
+                    // Penanganan dasar PWA: Jika jaringan gagal (offline), hindari layar dinosaurus error
+                    event.respondWith(
+                        fetch(event.request).catch(() => {
+                            return new Response('Aplikasi sedang offline. Mohon hubungkan ke jaringan untuk Sinkronisasi ke Cloud.', {
+                                headers: { 'Content-Type': 'text/plain' }
+                            });
+                        })
+                    );
+                });
+            `;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            const swUrl = URL.createObjectURL(swBlob);
+            
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register(swUrl)
+                    .then(reg => console.log('✅ PWA Service Worker Siap!', reg))
+                    .catch(err => console.log('❌ PWA Service Worker Gagal', err));
+            }
+            
+            // 3. Tangani event PWA Install Prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                const installBtn = document.getElementById('pwa-install-btn');
+                if(installBtn) {
+                    installBtn.classList.remove('hidden');
+                    installBtn.classList.add('flex');
+                    installBtn.onclick = async () => {
+                        installBtn.classList.add('hidden');
+                        installBtn.classList.remove('flex');
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        console.log('PWA Install Outcome:', outcome);
+                        deferredPrompt = null;
+                    };
+                }
+            });
+        });
     </script>
 
     <style>
@@ -51,7 +140,13 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3 sm:gap-4">
+                
+                <!-- TOMBOL INSTALL PWA (Ditampilkan oleh JavaScript jika didukung) -->
+                <button id="pwa-install-btn" class="hidden items-center gap-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-1.5 rounded-full font-bold transition text-[10px] sm:text-xs border border-emerald-200 shadow-sm animate-pulse">
+                    <i class="fas fa-download"></i> <span class="hidden sm:inline">Install App</span>
+                </button>
+
                 <div class="relative" id="notif-container">
                     <button onclick="toggleNotif(event)" class="relative text-slate-500 hover:text-blue-600 text-xl"><i class="far fa-bell"></i><span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 rounded-full border border-white">0</span></button>
                     <div id="notif-dropdown" class="hidden absolute right-0 mt-4 w-80 bg-white border border-slate-200 shadow-xl rounded-xl z-50 overflow-hidden">
