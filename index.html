@@ -375,6 +375,7 @@
                                 <h4 class="text-sm font-bold text-slate-800 border-b border-slate-200 p-6 bg-white"><i class="fas fa-cog text-slate-400 mr-2"></i>Pengaturan Aplikasi</h4>
                                 <div class="divide-y divide-slate-200">
                                     <button id="btn-admin-backend" onclick="window.bukaModalDB()" class="hidden w-full items-center justify-between p-6 hover:bg-slate-100 transition text-left"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-database"></i></div><div><p class="text-sm font-bold text-slate-800">Lihat Data Backend (Mentah)</p><p class="text-xs text-slate-500 mt-0.5">Mode Developer (Hanya Admin)</p></div></div><i class="fas fa-chevron-right text-slate-300 text-sm"></i></button>
+                                    <button onclick="window.bukaModalPassword('ganti')" class="w-full flex items-center justify-between p-6 hover:bg-slate-100 transition text-left"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-key"></i></div><div><p class="text-sm font-bold text-slate-800">Ganti Password</p><p class="text-xs text-slate-500 mt-0.5">Ubah password akun Anda</p></div></div><i class="fas fa-chevron-right text-slate-300 text-sm"></i></button>
                                     <div class="p-6 bg-white"><button onclick="window.prosesLogout()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-3 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2"><i class="fas fa-sign-out-alt"></i> Keluar (Logout)</button></div>
                                 </div>
                             </div>
@@ -421,7 +422,7 @@
             </div>
             <div class="p-6">
                 <div id="form-login-section" class="space-y-4 block">
-                    <input type="email" id="login-email" placeholder="Email (misal: admin@terranila.com)" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-slate-50">
+                    <input type="email" id="login-email" placeholder="Email" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-slate-50">
                     <input type="password" id="login-pass" placeholder="Password" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-slate-50">
                     <button onclick="window.prosesLogin()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Masuk</button>
                     <div class="flex justify-between text-sm mt-4">
@@ -437,6 +438,24 @@
                     <button onclick="window.prosesRegister()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl mt-2">Daftar Sekarang</button>
                     <p class="text-sm text-center mt-4">Sudah punya akun? <button onclick="window.toggleFormAuth('login')" class="text-blue-600 font-bold">Masuk</button></p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Atur Password Baru (reset via email & ganti password) -->
+    <div id="modal-reset-pass" class="hidden fixed inset-0 z-[550] flex items-center justify-center bg-slate-900/80 p-4">
+        <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-blue-600 p-6 text-center">
+                <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl mx-auto mb-3 text-blue-600 shadow-md"><i class="fas fa-key"></i></div>
+                <h3 class="text-xl font-bold text-white" id="reset-pass-title">Atur Password Baru</h3>
+                <p class="text-blue-100 text-xs mt-1" id="reset-pass-email"></p>
+            </div>
+            <div class="p-6 space-y-3">
+                <input type="password" id="reset-pass-1" placeholder="Password baru (min. 6 karakter)" autocomplete="new-password" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-slate-50">
+                <input type="password" id="reset-pass-2" placeholder="Ulangi password baru" autocomplete="new-password" class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm bg-slate-50">
+                <label class="flex items-center gap-2 text-xs text-slate-500 select-none"><input type="checkbox" onchange="window.toggleLihatPassword(this.checked)"> Tampilkan password</label>
+                <button id="btn-simpan-pass" onclick="window.simpanPasswordBaru()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">Simpan Password</button>
+                <button onclick="window.batalResetPassword()" class="w-full text-slate-500 text-sm py-2 hover:text-slate-700">Batal</button>
             </div>
         </div>
     </div>
@@ -517,7 +536,21 @@
         var supabaseUrl = 'https://vsshpfffxnwongnnsohl.supabase.co';
         var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzc2hwZmZmeG53b25nbm5zb2hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MTU4ODEsImV4cCI6MjEwNTQ5MTg4MX0.lCWQelSEVBEwXGao8cJTOLxv-v1u5cpbPxzTUKH_TNY';
         
+        // Harus dibaca sebelum createClient: client langsung memproses & membersihkan hash.
+        window.__authHashAwal = window.location.hash || '';
+        window.__authQueryAwal = window.location.search || '';
+        window.__isRecoveryFlow = window.__authHashAwal.includes('type=recovery');
+
         window.supabaseApp = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Menangkap event pemulihan password (berlaku untuk alur implicit maupun PKCE)
+        window.supabaseApp.auth.onAuthStateChange((event) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                window.__isRecoveryFlow = true;
+                // setTimeout: memanggil fungsi auth lain langsung di dalam callback ini bisa deadlock
+                setTimeout(() => { if (window.bukaModalPassword) window.bukaModalPassword('recovery'); }, 0);
+            }
+        });
 
         window.prosesRegister = async () => {
             const em = document.getElementById('reg-email').value.trim();
@@ -584,9 +617,90 @@
             const em = document.getElementById('login-email').value.trim();
             if(!em) return window.showCustomAlert("Ketikkan Email Anda di kolom email, lalu klik Lupa Password.");
             
-            const { data, error } = await window.supabaseApp.auth.resetPasswordForEmail(em);
-            window.showCustomAlert(`Instruksi reset kata sandi telah dikirim ke: ${em} (Jika terdaftar)`);
-        }
+            window.showCustomAlert("Mengirim email reset...");
+            const redirectTo = window.location.origin + window.location.pathname;
+            const { error } = await window.supabaseApp.auth.resetPasswordForEmail(em, { redirectTo });
+
+            if (error) {
+                const msg = /rate limit|too many|seconds/i.test(error.message)
+                    ? "Terlalu banyak permintaan. Tunggu beberapa menit lalu coba lagi."
+                    : error.message;
+                return window.showCustomAlert("Gagal mengirim email reset: " + msg);
+            }
+            window.showCustomAlert(`Jika ${em} terdaftar, link reset password sudah dikirim.\n\nBuka email tersebut, klik linknya, lalu Anda akan diminta membuat password baru.\n\nCek juga folder Spam.`);
+        };
+
+        // ===== RESET / GANTI PASSWORD =====
+        window.__modePassword = 'ganti';
+
+        window.bukaModalPassword = async (mode) => {
+            window.__modePassword = mode;
+            const { data: { session } } = await window.supabaseApp.auth.getSession();
+            if (!session) {
+                return window.showCustomAlert("Sesi tidak ditemukan. Link reset mungkin sudah kedaluwarsa, silakan minta link baru dari menu Lupa Password.");
+            }
+            document.getElementById('reset-pass-title').innerText = mode === 'recovery' ? 'Buat Password Baru' : 'Ganti Password';
+            document.getElementById('reset-pass-email').innerText = session.user.email || '';
+            document.getElementById('reset-pass-1').value = '';
+            document.getElementById('reset-pass-2').value = '';
+            if (window.tutupModalAuth) window.tutupModalAuth();
+            document.getElementById('modal-reset-pass').classList.remove('hidden');
+        };
+
+        window.toggleLihatPassword = (on) => {
+            ['reset-pass-1','reset-pass-2'].forEach(id => document.getElementById(id).type = on ? 'text' : 'password');
+        };
+
+        window.bersihkanUrlAuth = () => {
+            history.replaceState(null, '', window.location.origin + window.location.pathname);
+        };
+
+        window.simpanPasswordBaru = async () => {
+            const p1 = document.getElementById('reset-pass-1').value;
+            const p2 = document.getElementById('reset-pass-2').value;
+            if (p1.length < 6) return window.showCustomAlert("Password minimal 6 karakter.");
+            if (p1 !== p2) return window.showCustomAlert("Kedua password tidak sama.");
+
+            const btn = document.getElementById('btn-simpan-pass');
+            btn.disabled = true; btn.innerText = 'Menyimpan...';
+            const { data, error } = await window.supabaseApp.auth.updateUser({ password: p1 });
+            btn.disabled = false; btn.innerText = 'Simpan Password';
+
+            if (error) {
+                const msg = /different from the old/i.test(error.message)
+                    ? "Password baru tidak boleh sama dengan password lama."
+                    : error.message;
+                return window.showCustomAlert("Gagal menyimpan password: " + msg);
+            }
+
+            document.getElementById('modal-reset-pass').classList.add('hidden');
+            const wasRecovery = window.__modePassword === 'recovery';
+            window.__isRecoveryFlow = false;
+            window.bersihkanUrlAuth();
+
+            if (wasRecovery) {
+                const user = data.user;
+                const md = user.user_metadata || {};
+                window.activateSession(user.email, md.nama_lengkap || 'Petani', user.id, md.nama_usaha || '');
+                window.tarikDataSupabase();
+                window.showCustomAlert("Password berhasil diperbarui. Anda sudah masuk.");
+            } else {
+                window.showCustomAlert("Password berhasil diganti.");
+            }
+        };
+
+        window.batalResetPassword = async () => {
+            document.getElementById('modal-reset-pass').classList.add('hidden');
+            if (window.__modePassword === 'recovery') {
+                // Jangan biarkan sesi dari link reset tetap aktif tanpa password baru.
+                window.__isRecoveryFlow = false;
+                await window.supabaseApp.auth.signOut();
+                window.bersihkanUrlAuth();
+                localStorage.removeItem('terr_active');
+                document.documentElement.classList.remove('is-logged-in');
+                document.getElementById('login-wall').classList.remove('hidden');
+            }
+        };
 
         // Penanda: data cloud sudah selesai ditarik.
         // Selama masih false, aplikasi DILARANG menimpa data di server,
@@ -714,7 +828,28 @@
         };
 
         async function initApp() {
+            // Link reset/verifikasi yang kedaluwarsa atau tidak valid
+            const rawAuth = window.__authHashAwal + '&' + window.__authQueryAwal.replace(/^\?/, '');
+            if (/error_code=|error=access_denied/.test(rawAuth)) {
+                const p = new URLSearchParams(rawAuth.replace(/^#/, ''));
+                const kode = p.get('error_code') || '';
+                window.bersihkanUrlAuth();
+                window.showCustomAlert(kode === 'otp_expired'
+                    ? "Link sudah kedaluwarsa atau sudah pernah dipakai.\nSilakan minta link baru dari menu Lupa Password."
+                    : "Link tidak valid: " + (p.get('error_description') || kode || 'tidak diketahui').replace(/\+/g, ' '));
+            }
+
             const { data: { session } } = await window.supabaseApp.auth.getSession();
+
+            // Datang dari link reset password: minta password baru dulu, jangan auto-login.
+            if (session && window.__isRecoveryFlow) {
+                localStorage.removeItem('terr_active');
+                document.documentElement.classList.remove('is-logged-in');
+                document.getElementById('login-wall').classList.remove('hidden');
+                window.bukaModalPassword('recovery');
+                return;
+            }
+
             if(session) { 
                 const user = session.user;
                 const metadata = user.user_metadata || {};
