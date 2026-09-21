@@ -5,7 +5,7 @@
 // - Aset statis (ikon, CSS/JS CDN): cache sebagai cadangan offline.
 // - Permintaan ke Supabase: TIDAK PERNAH di-cache.
 
-const CACHE_NAME = 'terranila-v3';
+const CACHE_NAME = 'terranila-v4';
 const PRECACHE = [
   './',
   './index.html',
@@ -50,10 +50,12 @@ self.addEventListener('fetch', event => {
       fetch(req)
         .then(res => {
           const copy = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put('./index.html', copy));
+          // Simpan per-halaman. Dulu semua halaman disimpan di kunci index.html,
+          // sehingga membuka Kebijakan Privasi akan menimpa cache halaman utama.
+          if (res.ok) caches.open(CACHE_NAME).then(c => c.put(req, copy));
           return res;
         })
-        .catch(() => caches.match('./index.html').then(
+        .catch(() => caches.match(req).then(h => h || caches.match('./index.html')).then(
           hit => hit || new Response(
             '<h1>Offline</h1><p>Terranila butuh koneksi internet untuk memuat data dari server.</p>',
             { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
