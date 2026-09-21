@@ -25,67 +25,18 @@
         }
     </script>
 
-    <!-- PWA DYNAMIC GENERATOR (MANIFEST & SERVICE WORKER) -->
+    <!-- PWA: manifest & service worker sebagai file nyata -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. Generate Manifest dinamis untuk Single-File PWA
-            const manifestStr = JSON.stringify({
-                name: "Terranila Book - Budidaya Ikan",
-                short_name: "Terranila",
-                start_url: window.location.href,
-                display: "standalone",
-                background_color: "#F8FAFC",
-                theme_color: "#2563eb",
-                description: "Aplikasi Manajemen Budidaya Ikan Cerdas",
-                icons: [
-                    {
-                        src: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Water_drop_icon.svg/192px-Water_drop_icon.svg.png",
-                        sizes: "192x192",
-                        type: "image/png"
-                    },
-                    {
-                        src: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Water_drop_icon.svg/512px-Water_drop_icon.svg.png",
-                        sizes: "512x512",
-                        type: "image/png"
-                    }
-                ]
-            });
-            const manifestBlob = new Blob([manifestStr], {type: 'application/json'});
-            const manifestUrl = URL.createObjectURL(manifestBlob);
-            const link = document.createElement('link');
-            link.rel = 'manifest';
-            link.href = manifestUrl;
-            document.head.appendChild(link);
-
-            // 2. Generate Service Worker dinamis
-            const swCode = `
-                const CACHE_NAME = 'terranila-v2-pwa';
-                self.addEventListener('install', event => {
-                    self.skipWaiting();
-                });
-                self.addEventListener('activate', event => {
-                    event.waitUntil(clients.claim());
-                });
-                self.addEventListener('fetch', event => {
-                    // Penanganan dasar PWA: Jika jaringan gagal (offline), hindari layar dinosaurus error
-                    event.respondWith(
-                        fetch(event.request).catch(() => {
-                            return new Response('Aplikasi sedang offline. Mohon hubungkan ke jaringan untuk Sinkronisasi ke Cloud.', {
-                                headers: { 'Content-Type': 'text/plain' }
-                            });
-                        })
-                    );
-                });
-            `;
-            const swBlob = new Blob([swCode], {type: 'application/javascript'});
-            const swUrl = URL.createObjectURL(swBlob);
-            
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register(swUrl)
-                    .then(reg => console.log('✅ PWA Service Worker Siap!', reg))
-                    .catch(err => console.log('❌ PWA Service Worker Gagal', err));
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('PWA Service Worker aktif', reg.scope))
+                    .catch(err => console.warn('PWA Service Worker gagal', err));
             }
-            
+
             // 3. Tangani event PWA Install Prompt
             let deferredPrompt;
             window.addEventListener('beforeinstallprompt', (e) => {
@@ -563,8 +514,8 @@
     <!-- ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        var supabaseUrl = 'https://xvobcubcynohbhsfchkd.supabase.co';
-        var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2b2JjdWJjeW5vaGJoc2ZjaGtkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NjY2MzcsImV4cCI6MjA5NjA0MjYzN30.bCekf7hD1dnstlF1LcLrpzLZ2n_bRSFN09PtPeaKvKE';
+        var supabaseUrl = 'https://vsshpfffxnwongnnsohl.supabase.co';
+        var supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzc2hwZmZmeG53b25nbm5zb2hsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MTU4ODEsImV4cCI6MjEwNTQ5MTg4MX0.lCWQelSEVBEwXGao8cJTOLxv-v1u5cpbPxzTUKH_TNY';
         
         window.supabaseApp = window.supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -587,19 +538,23 @@
             if (error) {
                 window.showCustomAlert("Pendaftaran Gagal: " + error.message);
             } else {
-                if(data.user) {
+                // Baris profil dibuat otomatis oleh trigger on_auth_user_created di database.
+                // Upsert dari browser hanya dilakukan bila sesi sudah aktif (Confirm email OFF),
+                // supaya tidak ditolak RLS dan tidak memunculkan peringatan palsu.
+                if (data.session && data.user) {
                     const { error: profileErr } = await window.supabaseApp.from('profiles').upsert({
                         id: data.user.id,
                         nama_lengkap: nm,
                         nama_usaha: fm
                     });
-                    if (profileErr) {
-                        console.error("Error Simpan Profil:", profileErr);
-                        window.showCustomAlert("Peringatan: Akun berhasil terdaftar, namun profil gagal disimpan (Pastikan 'Confirm Email' dimatikan).");
-                        return;
-                    }
+                    if (profileErr) console.warn("Sinkronisasi profil ditunda:", profileErr.message);
                 }
-                window.showCustomAlert("Berhasil mendaftar di Supabase!\nSilakan Login untuk mulai menggunakan aplikasi.");
+
+                if (data.session) {
+                    window.showCustomAlert("Berhasil mendaftar!\nSilakan Login untuk mulai menggunakan aplikasi.");
+                } else {
+                    window.showCustomAlert("Pendaftaran berhasil!\nCek email " + em + " dan klik tautan verifikasi, lalu kembali ke sini untuk Login.");
+                }
                 window.toggleFormAuth('login');
             }
         };
@@ -609,11 +564,6 @@
             const ps = document.getElementById('login-pass').value;
             
             if(!em || !ps) return window.showCustomAlert("Isi Email dan Password!");
-
-            if(em === 'admin@terranila.com') {
-                window.activateSession(em, 'Admin Utama', 'admin_super_uid_999', 'Pusat Data Terranila');
-                return window.showCustomAlert("Berhasil masuk sebagai Admin!");
-            }
 
             window.showCustomAlert("Memverifikasi...");
 
@@ -638,21 +588,40 @@
             window.showCustomAlert(`Instruksi reset kata sandi telah dikirim ke: ${em} (Jika terdaftar)`);
         }
 
+        // Penanda: data cloud sudah selesai ditarik.
+        // Selama masih false, aplikasi DILARANG menimpa data di server,
+        // supaya state kosong tidak menghapus data yang sudah ada.
+        window.cloudLoaded = false;
+
         window.tarikDataSupabase = async () => {
-             document.getElementById('cloud-status-badge').innerHTML = '<i class="fas fa-sync fa-spin"></i> Menarik data...';
+             const badge = document.getElementById('cloud-status-badge');
+             if(badge) badge.innerHTML = '<i class="fas fa-sync fa-spin"></i> Menarik data...';
+
              const { data: { user } } = await window.supabaseApp.auth.getUser();
              if(!user) return;
 
-             try {
-                 const { data, error } = await window.supabaseApp.from('master_state').select('state_data').eq('user_id', user.id).single();
-                 
-                 if (data && data.state_data && window.applyCloudData) {
-                     window.applyCloudData(data.state_data);
-                     document.getElementById('cloud-status-badge').innerHTML = '<i class="fas fa-cloud-check"></i> Supabase Sync';
-                 } else {
-                     document.getElementById('cloud-status-badge').innerHTML = '<i class="fas fa-cloud"></i> Siap';
-                 }
-             } catch(e) { console.error("Gagal menarik data", e); }
+             const { data, error } = await window.supabaseApp
+                 .from('master_state')
+                 .select('state_data')
+                 .eq('user_id', user.id)
+                 .maybeSingle();
+
+             if (error) {
+                 window.cloudLoaded = false;
+                 console.error("Gagal menarik data:", error);
+                 if(badge) badge.innerHTML = '<i class="fas fa-triangle-exclamation text-red-500"></i> Gagal memuat';
+                 window.showCustomAlert("Gagal memuat data dari server: " + error.message + "\n\nPenyimpanan dinonaktifkan sementara agar data lama Anda tidak tertimpa. Silakan refresh halaman.");
+                 return;
+             }
+
+             window.cloudLoaded = true;
+
+             if (data && data.state_data && window.applyCloudData) {
+                 window.applyCloudData(data.state_data);
+                 if(badge) badge.innerHTML = '<i class="fas fa-cloud"></i> Supabase Sync';
+             } else {
+                 if(badge) badge.innerHTML = '<i class="fas fa-cloud"></i> Siap';
+             }
         };
 
         window.syncDataToCloud = async () => {
@@ -672,19 +641,32 @@
             if(!user) return;
 
             const badge = document.getElementById('cloud-status-badge');
+
+            // Jangan pernah menyimpan sebelum data cloud selesai ditarik.
+            if (!window.cloudLoaded) {
+                console.warn("Sync dibatalkan: data cloud belum selesai dimuat.");
+                if(badge) badge.innerHTML = '<i class="fas fa-triangle-exclamation text-red-500"></i> Belum siap';
+                return;
+            }
+
             if(badge) badge.innerHTML = '<i class="fas fa-sync fa-spin"></i> Menyimpan...';
 
-            try {
-                await window.supabaseApp.from('master_state').upsert({
-                    user_id: user.id,
-                    state_data: fullState,
-                    updated_at: new Date().toISOString()
-                });
-                if(badge) badge.innerHTML = '<i class="fas fa-cloud-check"></i> Supabase Sync';
-            } catch(e) {
-                console.error("Gagal simpan ke Supabase:", e);
+            // supabase-js TIDAK melempar exception saat ditolak RLS/jaringan,
+            // errornya dikembalikan sebagai objek. Wajib dicek manual.
+            const { error } = await window.supabaseApp.from('master_state').upsert({
+                user_id: user.id,
+                state_data: fullState,
+                updated_at: new Date().toISOString()
+            });
+
+            if (error) {
+                console.error("Gagal simpan ke Supabase:", error);
                 if(badge) badge.innerHTML = '<i class="fas fa-times text-red-500"></i> Gagal Sync';
+                window.showCustomAlert("PERINGATAN: Data gagal tersimpan ke server.\n(" + error.message + ")\nJangan tutup halaman ini sebelum berhasil tersimpan.");
+                return;
             }
+
+            if(badge) badge.innerHTML = '<i class="fas fa-cloud"></i> Supabase Sync';
         };
 
         window.activateSession = function(email, nama, uid, usaha) {
@@ -713,6 +695,7 @@
 
         window.prosesLogout = async () => {
             await window.supabaseApp.auth.signOut(); 
+            window.cloudLoaded = false;
             localStorage.removeItem('terr_active');
             document.documentElement.classList.remove('is-logged-in');
             
@@ -738,13 +721,9 @@
                 window.activateSession(user.email, metadata.nama_lengkap || 'Petani', user.id, metadata.nama_usaha || '');
                 window.tarikDataSupabase();
             } else {
-                const activeUser = JSON.parse(localStorage.getItem('terr_active'));
-                if(activeUser && activeUser.email === 'admin@terranila.com') { 
-                    window.activateSession(activeUser.email, activeUser.nama, activeUser.uid, activeUser.usaha); 
-                } else {
-                    document.documentElement.classList.remove('is-logged-in');
-                    document.getElementById('login-wall').classList.remove('hidden');
-                }
+                localStorage.removeItem('terr_active');
+                document.documentElement.classList.remove('is-logged-in');
+                document.getElementById('login-wall').classList.remove('hidden');
             }
         }
         
@@ -802,6 +781,7 @@
                 return urlData.publicUrl; 
             } catch (err) {
                 console.error("Upload error", err);
+                window.showCustomAlert("Gagal mengunggah foto ke Storage.\n(" + (err.message || err) + ")\nPastikan bucket 'lampiran' sudah dibuat di Supabase.");
                 return null;
             }
         }
