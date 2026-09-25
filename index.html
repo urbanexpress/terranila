@@ -1547,7 +1547,9 @@
                 tb.innerHTML += `<tr class="border-b border-slate-100 hover:bg-slate-50"><td class="py-3 px-4 text-left">${x.tgl} <span class="text-xs text-slate-500">${x.wkt}</span></td><td class="py-3 px-4 text-left font-bold text-blue-600">${x.kolam}</td><td class="py-3 px-4">${x.suhu>0?x.suhu:'-'}</td><td class="py-3 px-4">${x.ph>0?x.ph:'-'}</td><td class="py-3 px-4">${x.doAir>0?x.doAir:'-'}</td><td class="py-3 px-4 text-red-500 font-bold">${x.mort>0?x.mort:'-'}</td><td class="py-3 px-4 text-blue-600 font-bold">${tx}</td><td class="py-3 px-4 text-left">${st}</td></tr>`;
             });
         }
-        function downloadLaporan() { window.showCustomAlert("File laporan siap diunduh (Simulasi export)."); }
+        // Implementasi sebenarnya ada di laporan.js. Fungsi ini hanya jembatan
+        // supaya tombol lama tetap bekerja meski laporan.js belum sempat dimuat.
+        function downloadLaporan() { if (window.bukaModalLaporan) window.bukaModalLaporan(); else window.showCustomAlert("Modul laporan belum dimuat. Refresh halaman lalu coba lagi."); }
 
         function renderRingkasanPerforma() {
             let fKolam = document.getElementById('filter-performa-kolam')?.value || '';
@@ -1784,5 +1786,8 @@
         }
 
     </script>
+
+    <!-- Modul laporan PDF (berkas terpisah supaya index.html tidak ikut berubah saat laporan diperbaiki) -->
+    <script src="laporan.js"></script>
 </body>
 </html>
