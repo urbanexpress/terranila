@@ -275,7 +275,7 @@
                 <h3 class="text-xl font-bold text-slate-800 mb-4">Hasil Panen</h3>
                 <div class="bg-white border border-slate-200 rounded-2xl overflow-x-auto table-scrollbar pb-2 shadow-sm">
                     <table class="w-full text-sm text-center whitespace-nowrap">
-                        <thead class="bg-slate-50 text-xs text-slate-500 border-b border-slate-200"><tr><th class="py-4 px-4">Tanggal</th><th class="py-4 px-4">Kolam</th><th class="py-4 px-4">Total Berat</th><th class="py-4 px-4">Total Ekor</th><th class="py-4 px-4">Mortalitas</th><th class="py-4 px-4">Status</th><th class="py-4 px-4">Aksi</th></tr></thead>
+                        <thead class="bg-slate-50 text-xs text-slate-500 border-b border-slate-200"><tr><th class="py-4 px-4">Tanggal</th><th class="py-4 px-4">Kolam</th><th class="py-4 px-4">Total Berat</th><th class="py-4 px-4">Total Ekor</th><th class="py-4 px-4">Mortalitas</th><th class="py-4 px-4">FCR</th><th class="py-4 px-4">Status</th><th class="py-4 px-4">Aksi</th></tr></thead>
                         <tbody id="tbody-riwayat-panen" class="divide-y divide-slate-100 text-slate-700"><tr><td colspan="7" class="py-8 text-slate-400">Belum ada data.</td></tr></tbody>
                     </table>
                 </div>
@@ -376,6 +376,7 @@
                                 <div class="divide-y divide-slate-200">
                                     <button id="btn-admin-backend" onclick="window.bukaModalDB()" class="hidden w-full items-center justify-between p-6 hover:bg-slate-100 transition text-left"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fas fa-database"></i></div><div><p class="text-sm font-bold text-slate-800">Lihat Data Backend (Mentah)</p><p class="text-xs text-slate-500 mt-0.5">Mode Developer (Hanya Admin)</p></div></div><i class="fas fa-chevron-right text-slate-300 text-sm"></i></button>
                                     <button onclick="window.bukaModalPassword('ganti')" class="w-full flex items-center justify-between p-6 hover:bg-slate-100 transition text-left"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-key"></i></div><div><p class="text-sm font-bold text-slate-800">Ganti Password</p><p class="text-xs text-slate-500 mt-0.5">Ubah password akun Anda</p></div></div><i class="fas fa-chevron-right text-slate-300 text-sm"></i></button>
+                                    <button onclick="window.toggleAlarmPakan()" class="w-full flex items-center justify-between p-6 hover:bg-slate-100 transition text-left border-b border-slate-100"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fas fa-bell"></i></div><div><p class="text-sm font-bold text-slate-800">Alarm Pengingat Pakan</p><p class="text-xs text-slate-500 mt-0.5">Berbunyi saat jam pakan tiba, selama aplikasi terbuka</p></div></div><span id="label-alarm-pakan" class="text-xs font-bold text-emerald-600">Aktif</span></button>
                                     <a href="kebijakan-privasi.html" target="_blank" rel="noopener" class="w-full flex items-center justify-between p-6 hover:bg-slate-100 transition text-left"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center"><i class="fas fa-shield-halved"></i></div><div><p class="text-sm font-bold text-slate-800">Kebijakan Privasi</p><p class="text-xs text-slate-500 mt-0.5">Data apa yang kami simpan dan kenapa</p></div></div><i class="fas fa-arrow-up-right-from-square text-slate-300 text-sm"></i></a>
                                     <button onclick="window.bukaModalHapusAkun()" class="w-full flex items-center justify-between p-6 hover:bg-red-50 transition text-left"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center"><i class="fas fa-user-slash"></i></div><div><p class="text-sm font-bold text-red-600">Hapus Akun</p><p class="text-xs text-slate-500 mt-0.5">Hapus akun dan seluruh data secara permanen</p></div></div><i class="fas fa-chevron-right text-slate-300 text-sm"></i></button>
                                     <div class="p-6 bg-white"><button onclick="window.prosesLogout()" class="w-full bg-red-50 text-red-600 border border-red-200 font-bold py-3 rounded-xl hover:bg-red-100 transition flex items-center justify-center gap-2"><i class="fas fa-sign-out-alt"></i> Keluar (Logout)</button></div>
@@ -1584,8 +1585,11 @@
             let tPert = Math.max(0, tBioTarget - initialBio); let pPert = tPert > 0 && lastBio > 0 ? (pertumbuhan / tPert) * 100 : 0;
             document.getElementById('perf-bar-pertumbuhan').style.width = `${Math.min(100, Math.max(0, pPert))}%`; document.getElementById('perf-pct-pertumbuhan').innerText = lastBio > 0 ? `${Math.max(0, pPert).toFixed(0)}%` : '0%';
 
-            let fcr = (pertumbuhan > 0 && tPakan > 0) ? (tPakan / pertumbuhan) : 0; let fcrTg = tPert > 0 ? (tPakanTarget / tPert) : 1.5;
-            document.getElementById('perf-fcr').innerText = fcr > 0 ? fcr.toFixed(2) : '0.00'; document.getElementById('perf-fcr-target').innerText = `(Target: ${fcrTg.toFixed(2)})`;
+            let fcr = (pertumbuhan > 0 && tPakan > 0) ? (tPakan / pertumbuhan) : 0;
+            // Dulu nilainya jatuh ke 1.5 saat data target belum lengkap, dan
+            // angka karangan itu tetap ditampilkan seolah target sungguhan.
+            let fcrTg = (tPert > 0 && tPakanTarget > 0) ? (tPakanTarget / tPert) : 0;
+            document.getElementById('perf-fcr').innerText = fcr > 0 ? fcr.toFixed(2) : '0.00'; document.getElementById('perf-fcr-target').innerText = fcrTg > 0 ? `(Target: ${fcrTg.toFixed(2)})` : '(Target belum diisi)';
             let fcrPct = fcrTg > 0 && fcr > 0 ? (fcr / fcrTg) * 100 : 0;
             let barFcr = document.getElementById('perf-bar-fcr'); barFcr.style.width = `${Math.min(100, fcrPct)}%`;
             if (fcrPct > 100) { barFcr.classList.replace('bg-orange-400', 'bg-red-500'); } else { barFcr.classList.replace('bg-red-500', 'bg-orange-400'); }
@@ -1743,11 +1747,47 @@
             document.getElementById('area-form-panen').classList.add('hidden'); document.getElementById('pilih-kolam-panen').value = '';
             window.showCustomAlert('Sukses!\nData Panen tersimpan ke Riwayat Cloud.'); if(window.syncDataToCloud) window.syncDataToCloud();
         }
+        // FCR panen dihitung ulang dari data, menggantikan angka 1.3 yang
+        // dulu dipaku di kode dan selalu sama berapa pun datanya.
+        // Rumus: pakan yang diberikan ke kolam itu sejak panen sebelumnya
+        // sampai tanggal panen ini, dibagi total kg hasil panen ini.
+        // Pakan dicatat per kolam (bukan per jenis ikan), jadi angka ini
+        // berlaku untuk satu kolam, bukan per jenis.
+        function hitungFcrPanen(p) {
+            try {
+                const totalKg = (p.bStr || []).reduce((a, t) => {
+                    const m = String(t).match(/([\d.,]+)\s*kg/i);
+                    return a + (m ? (parseFloat(m[1].replace(/\./g, '').replace(',', '.')) || 0) : 0);
+                }, 0);
+                if (totalKg <= 0) return '<span class="text-slate-300">-</span>';
+
+                // Batas awal siklus: tanggal panen sebelumnya di kolam yang sama.
+                let mulai = '';
+                dbRiwayatPanen.forEach(x => {
+                    if (x !== p && x.kolam === p.kolam && x.tgl < p.tgl && x.tgl > mulai) mulai = x.tgl;
+                });
+
+                let pakan = 0;
+                dbMonitoring.forEach(m => {
+                    if (m.kolam !== p.kolam) return;
+                    if (m.tgl > p.tgl) return;
+                    if (mulai && m.tgl <= mulai) return;
+                    pakan += parseFloat(m.takaran) || 0;
+                });
+                if (pakan <= 0) return '<span class="text-slate-300" title="Belum ada catatan pemberian pakan untuk siklus ini">-</span>';
+
+                const nilai = pakan / totalKg;
+                return nilai.toFixed(2) + '<br><span class="text-[10px] text-slate-400">per kolam</span>';
+            } catch (e) {
+                return '<span class="text-slate-300">-</span>';
+            }
+        }
+
         function renderTabelRiwayatPanen() {
             const tRiw = document.getElementById('tbody-riwayat-panen'); if(!tRiw) return;
-            if(dbRiwayatPanen.length === 0) { tRiw.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-slate-400">Belum ada data riwayat panen.</td></tr>'; return; }
+            if(dbRiwayatPanen.length === 0) { tRiw.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-400">Belum ada data riwayat panen.</td></tr>'; return; }
             tRiw.innerHTML = '';
-            [...dbRiwayatPanen].reverse().forEach(p => { tRiw.innerHTML += `<tr class="hover:bg-slate-50 border-b border-slate-100"><td class="py-4 px-4 text-left">${p.tgl}</td><td class="py-4 px-4 text-left font-bold text-slate-800">${p.kolam}<br><span class="text-xs font-normal text-slate-500">${p.jStr.join(', ')}</span></td><td class="py-4 px-4">-</td><td class="py-4 px-4 font-bold text-slate-800">${p.bStr.join('<br>')}</td><td class="py-4 px-4">${p.eStr.join('<br>')}</td><td class="py-4 px-4">${p.mStr.join('<br>')}</td><td class="py-4 px-4">${p.fStr.join('<br>')}</td><td class="py-4 px-4">-</td><td class="py-4 px-4"><span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs">Selesai</span></td><td class="py-4 px-4 text-center"><div class="flex flex-col items-center">${p.btnH.join('')}</div></td></tr>`; });
+            [...dbRiwayatPanen].reverse().forEach(p => { tRiw.innerHTML += `<tr class="hover:bg-slate-50 border-b border-slate-100"><td class="py-4 px-4 text-left">${p.tgl}</td><td class="py-4 px-4 text-left font-bold text-slate-800">${p.kolam}<br><span class="text-xs font-normal text-slate-500">${p.jStr.join(', ')}</span></td><td class="py-4 px-4 font-bold text-slate-800">${p.bStr.join('<br>')}</td><td class="py-4 px-4">${p.eStr.join('<br>')}</td><td class="py-4 px-4">${p.mStr.join('<br>')}</td><td class="py-4 px-4">${hitungFcrPanen(p)}</td><td class="py-4 px-4"><span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs">Selesai</span></td><td class="py-4 px-4 text-center"><div class="flex flex-col items-center">${p.btnH.join('')}</div></td></tr>`; });
         }
 
         // PENJUALAN
@@ -1789,5 +1829,6 @@
 
     <!-- Modul laporan PDF (berkas terpisah supaya index.html tidak ikut berubah saat laporan diperbaiki) -->
     <script src="laporan.js"></script>
+    <script src="pengingat.js"></script>
 </body>
 </html>
