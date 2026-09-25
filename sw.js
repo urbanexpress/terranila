@@ -5,11 +5,12 @@
 // - Aset statis (ikon, CSS/JS CDN): cache sebagai cadangan offline.
 // - Permintaan ke Supabase: TIDAK PERNAH di-cache.
 
-const CACHE_NAME = 'terranila-v4';
+const CACHE_NAME = 'terranila-v5';
 const PRECACHE = [
   './',
   './index.html',
   './manifest.json',
+  './laporan.js',
   './icon-192.png',
   './icon-512.png'
 ];
