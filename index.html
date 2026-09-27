@@ -520,8 +520,9 @@
             <button onclick="tambahWaktuPakan()" class="text-blue-600 text-xs font-bold">+ Tambah Waktu</button>
         </div>
 
-        <div id="grup-detail-pakan" class="bg-slate-50 p-4 rounded-xl mb-4 border border-slate-200 hidden">
+        <div id="grup-detail-pakan" class="bg-slate-50 p-4 rounded-xl mb-4 border border-slate-200 opacity-50 pointer-events-none">
             <h4 class="font-bold text-sm mb-2 text-slate-700"><i class="fas fa-cubes text-blue-500"></i> Rencana Pakan</h4>
+            <p id="hint-detail-pakan" class="text-[11px] text-slate-500 bg-white border border-slate-200 rounded-lg p-2 mb-2 leading-snug"><i class="fas fa-circle-info text-blue-500"></i> Isi <b>jumlah tebar</b>, <b>target berat</b>, dan <b>target FCR</b> pada blok ikan di atas. Setelah itu bagian ini aktif.<br>Merek dan harga yang Anda isi di sini menjadi dasar estimasi biaya pakan, dan menjadi pilihan merek saat mencatat pembelian pakan.</p>
             <table class="w-full text-xs text-left mb-2">
                 <thead><tr><th>Fase</th><th>Brand</th><th>Rp/kg</th><th>%</th><th>X</th></tr></thead>
                 <tbody id="wadah-baris-pakan"></tbody>
@@ -1254,7 +1255,7 @@
             document.getElementById('input-lampiran-kolam').value = '';
             document.getElementById('preview-lampiran-kolam').classList.add('hidden');
             document.getElementById('preview-lampiran-kolam').src = '';
-            document.getElementById('grup-detail-pakan').classList.add('hidden');
+            aturGrupPakan(false);
 
             document.getElementById('modal-tambah-kolam').classList.remove('hidden'); 
             tambahBlokIkan(); 
@@ -1311,10 +1312,22 @@
             });
             const gp = document.getElementById('grup-detail-pakan');
             if(gp) {
-                if (totP>0) { gp.classList.remove('hidden'); if(document.getElementById('wadah-baris-pakan').children.length===0) tambahBarisPakan(); } 
-                else { gp.classList.add('hidden'); }
+                if (totP>0) { aturGrupPakan(true); if(document.getElementById('wadah-baris-pakan').children.length===0) tambahBarisPakan(); } 
+                else { aturGrupPakan(false); }
             }
         }
+        // Dulu kotak Rencana Pakan disembunyikan sepenuhnya saat target pakan
+        // belum bisa dihitung, sehingga pengguna mengira fiturnya tidak ada.
+        // Sekarang tetap terlihat namun redup, disertai syarat pengisiannya.
+        function aturGrupPakan(aktif) {
+            const gp = document.getElementById('grup-detail-pakan');
+            const hint = document.getElementById('hint-detail-pakan');
+            if(!gp) return;
+            gp.classList.toggle('opacity-50', !aktif);
+            gp.classList.toggle('pointer-events-none', !aktif);
+            if(hint) hint.classList.toggle('hidden', !!aktif);
+        }
+
         function tambahWaktuPakan(val = '') { document.getElementById('wadah-waktu-pakan').insertAdjacentHTML('beforeend', `<div class="flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-3 py-2 shadow-sm"><input type="time" value="${val}" class="text-sm outline-none text-blue-600 font-bold bg-transparent"><span class="text-xs text-slate-500">WIB</span><button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-red-500 ml-1"><i class="fas fa-times"></i></button></div>`); }
         function tambahBarisPakan(data = null) { 
             let f = data ? data.fase : ''; let b = data ? data.brand : ''; let h = data ? data.harga : ''; let p = data ? data.persen : '';
